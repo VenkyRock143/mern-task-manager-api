@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { auth, tasks } from './api';
 import './App.css';
 
@@ -11,9 +11,19 @@ function App() {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [taskForm, setTaskForm] = useState({ title: '', description: '' });
 
+  // Wrap loadTasks in useCallback to satisfy useEffect dependency
+  const loadTasks = useCallback(async () => {
+    try {
+      const res = await tasks.list(token);
+      setTasksList(res);
+    } catch (err) {
+      setError(err.message || 'Failed to load tasks');
+    }
+  }, [token]);
+
   useEffect(() => {
     if (token) loadTasks();
-  }, [token]);
+  }, [token, loadTasks]); // ✅ include loadTasks
 
   async function handleRegister(e) {
     e.preventDefault();
@@ -22,11 +32,14 @@ function App() {
       const res = await auth.register({ name: form.name, email: form.email, password: form.password });
       localStorage.setItem('accessToken', res.accessToken);
       localStorage.setItem('user', JSON.stringify(res.user));
-      setToken(res.accessToken); setUser(res.user); setView('dashboard');
+      setToken(res.accessToken);
+      setUser(res.user);
+      setView('dashboard');
     } catch (err) {
-      setError(err.message || JSON.stringify(err));
+      setError(err instanceof Error ? err.message : JSON.stringify(err));
     }
   }
+
   async function handleLogin(e) {
     e.preventDefault();
     setError('');
@@ -34,30 +47,33 @@ function App() {
       const res = await auth.login({ email: form.email, password: form.password });
       localStorage.setItem('accessToken', res.accessToken);
       localStorage.setItem('user', JSON.stringify(res.user));
-      setToken(res.accessToken); setUser(res.user); setView('dashboard');
+      setToken(res.accessToken);
+      setUser(res.user);
+      setView('dashboard');
     } catch (err) {
-      setError(err.message || JSON.stringify(err));
+      setError(err instanceof Error ? err.message : JSON.stringify(err));
     }
   }
-  async function loadTasks() {
-    try {
-      const res = await tasks.list(token);
-      setTasksList(res);
-    } catch (err) {
-      setError(err.message || 'Failed to load tasks');
-    }
-  }
+
   async function handleCreateTask(e) {
     e.preventDefault();
+    setError('');
     try {
       await tasks.create(taskForm, token);
       setTaskForm({ title: '', description: '' });
       loadTasks();
-    } catch (err) { setError(err.message || 'Create failed'); }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Create failed');
+    }
   }
+
   async function handleLogout() {
-    localStorage.removeItem('accessToken'); localStorage.removeItem('user');
-    setToken(''); setUser(null); setView('login'); setTasksList([]);
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('user');
+    setToken('');
+    setUser(null);
+    setView('login');
+    setTasksList([]);
   }
 
   if (view === 'register') {
