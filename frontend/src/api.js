@@ -1,4 +1,4 @@
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:4000/api/v1';
+const API_BASE = process.env.REACT_APP_API_BASE || 'https://mern-task-manager-api-3.onrender.com/api/v1';
 
 async function request(path, { method='GET', body, token } = {}) {
   const headers = { 'Content-Type': 'application/json' };
