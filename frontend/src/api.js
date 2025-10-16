@@ -3,13 +3,22 @@ const API_BASE = process.env.REACT_APP_API_BASE || 'https://mern-task-manager-ap
 async function request(path, { method='GET', body, token } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
+
   const res = await fetch(`${API_BASE}${path}`, {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined
   });
+
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw { status: res.status, ...data };
+
+  if (!res.ok) {
+    const error = new Error(data.message || 'Request failed'); // create Error object
+    error.status = res.status;
+    error.data = data;
+    throw error;
+  }
+
   return data;
 }
 
